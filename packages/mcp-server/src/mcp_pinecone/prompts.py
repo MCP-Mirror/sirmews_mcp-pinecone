@@ -107,6 +107,7 @@ def pinecone_store(
                 content=types.TextContent(
                     type="text",
                     text=f"Run the process-document tool with the content: {content} \n"
+                    "Do not truncate or use placeholders to describe an intent to add a document. Always add the raw content. \n"
                     "Include generated metadata in the document. \n"
                     f"Store in the {namespace} if specified",
                 ),
