@@ -2,6 +2,9 @@ use serde::Deserialize;
 use zed::settings::ContextServerSettings;
 use zed_extension_api::{self as zed, serde_json, Command, ContextServerId, Project, Result};
 
+const PACKAGE_NAME: &str = "mcp-pinecone";
+const PACKAGE_VERSION: &str = "0.1.8";  // Match your package version
+
 // Define the Pinecone extension
 struct PineconeExtension;
 
@@ -24,9 +27,6 @@ impl zed::Extension for PineconeExtension {
         _context_server_id: &ContextServerId,
         project: &Project,
     ) -> Result<Command> {
-
-        // First check if mcp-pinecone is installed
-        // Self::check_mcp_pinecone()?;
 
         let settings = ContextServerSettings::for_project("pinecone-context-server", project)?;
         let Some(settings) = settings.settings else {
