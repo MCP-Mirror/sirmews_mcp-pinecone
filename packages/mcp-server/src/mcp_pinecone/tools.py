@@ -34,15 +34,6 @@ ServerTools = [
                     "type": "string",
                     "description": "Optional namespace to search in",
                 },
-                "category": {"type": "string"},
-                "tags": {"type": "array", "items": {"type": "string"}},
-                "date_range": {
-                    "type": "object",
-                    "properties": {
-                        "start": {"type": "string", "format": "date"},
-                        "end": {"type": "string", "format": "date"},
-                    },
-                },
             },
             "required": ["query"],
         },
@@ -157,9 +148,12 @@ def semantic_search(
     Read a document from the pinecone knowledge base
     """
     query = arguments.get("query")
-    top_k = arguments.get("top_k", 10)
+    top_k = arguments.get("top_k", "10")
     filters = arguments.get("filters", {})
     namespace = arguments.get("namespace")
+
+    # convert top_k to int
+    top_k = int(top_k)
 
     results = pinecone_client.search_records(
         query=query,
@@ -171,15 +165,25 @@ def semantic_search(
 
     matches = results.get("matches", [])
 
+    messages = [
+        types.TextContent(
+            type="text",
+            text="Retrieved Context:\n",
+        )
+    ]
+
     # Format results with rich context
-    formatted_text = "Retrieved Contexts:\n\n"
     for i, match in enumerate(matches, 1):
         metadata = match.get("metadata", {})
-        formatted_text += f"Result {i} | Similarity: {match['score']:.3f} | Document ID: {match['id']}\n"
-        formatted_text += f"{metadata.get('text', '').strip()}\n"
-        formatted_text += "-" * 10 + "\n\n"
+        messages.append(
+            types.TextContent(
+                type="text",
+                text=f"Result: {i} | Similarity: {match['score']:.3f} | Document ID: {match['id']}\n"
+                f"Metadata: {metadata.get('text', '').strip()}\n",
+            )
+        )
 
-    return [types.TextContent(type="text", text=formatted_text)]
+    return messages
 
 
 def process_document(
@@ -298,4 +302,9 @@ def upsert_documents(
 
 __all__ = [
     "register_tools",
+    "semantic_search",
+    "read_document",
+    "process_document",
+    "list_documents",
+    "pinecone_stats",
 ]
