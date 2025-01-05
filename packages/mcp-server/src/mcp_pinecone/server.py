@@ -10,7 +10,9 @@ from .tools import register_tools
 from .prompts import register_prompts
 import importlib.metadata
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger("pinecone-mcp")
 
 pinecone_client = None
