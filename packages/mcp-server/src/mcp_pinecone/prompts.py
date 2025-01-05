@@ -14,10 +14,6 @@ class PromptName(str, Enum):
     PINECONE_QUERY = "pinecone-query"
     PINECONE_STORE = "pinecone-store"
     PINECONE_SEMANTIC_SEARCH = "pinecone-semantic-search"
-    PINECONE_READ_DOCUMENT = "pinecone-read-document"
-    PINECONE_PROCESS_DOCUMENT = "pinecone-process-document"
-    PINECONE_LIST_DOCUMENTS = "pinecone-list-documents"
-    PINECONE_STATS = "pinecone-stats"
 
 
 ServerPrompts = [
@@ -30,22 +26,6 @@ ServerPrompts = [
                 description="The question to answer, or the context to search for",
                 required=True,
             )
-        ],
-    ),
-    types.Prompt(
-        name=PromptName.PINECONE_STORE,
-        description="Store content as document in Pinecone",
-        arguments=[
-            types.PromptArgument(
-                name="content",
-                description="The content to store as a Pinecone document",
-                required=True,
-            ),
-            types.PromptArgument(
-                name="namespace",
-                description="The namespace to store the document in",
-                required=False,
-            ),
         ],
     ),
     types.Prompt(
