@@ -3,7 +3,6 @@ from enum import Enum
 import mcp.types as types
 from mcp.server import Server
 from .pinecone import PineconeClient
-from datetime import datetime
 from .tools import semantic_search
 
 
@@ -11,23 +10,10 @@ logger = logging.getLogger("pinecone-mcp")
 
 
 class PromptName(str, Enum):
-    PINECONE_QUERY = "pinecone-query"
-    PINECONE_STORE = "pinecone-store"
-    PINECONE_SEMANTIC_SEARCH = "pinecone-semantic-search"
+    PINECONE_SEMANTIC_SEARCH = "pinecone-search"
 
 
 ServerPrompts = [
-    types.Prompt(
-        name=PromptName.PINECONE_QUERY,
-        description="Search Pinecone index and construct an answer based on relevant pinecone documents",
-        arguments=[
-            types.PromptArgument(
-                name="query",
-                description="The question to answer, or the context to search for",
-                required=True,
-            )
-        ],
-    ),
     types.Prompt(
         name=PromptName.PINECONE_SEMANTIC_SEARCH,
         description="Search Pinecone index and construct an answer based on relevant pinecone documents",
@@ -36,17 +22,7 @@ ServerPrompts = [
                 name="query",
                 description="The query to search for",
                 required=True,
-            ),
-            types.PromptArgument(
-                name="top_k",
-                description="The number of documents to return",
-                required=False,
-            ),
-            types.PromptArgument(
-                name="namespace",
-                description="The namespace to search in",
-                required=False,
-            ),
+            )
         ],
     ),
 ]
@@ -62,11 +38,7 @@ def register_prompts(server: Server, pinecone_client: PineconeClient):
         name: str, arguments: dict[str, str] | None
     ) -> types.GetPromptResult:
         try:
-            if name == PromptName.PINECONE_QUERY:
-                return pinecone_query(arguments, pinecone_client)
-            elif name == PromptName.PINECONE_STORE:
-                return pinecone_store(arguments, pinecone_client)
-            elif name == PromptName.PINECONE_SEMANTIC_SEARCH:
+            if name == PromptName.PINECONE_SEMANTIC_SEARCH:
                 return pinecone_semantic_search(arguments, pinecone_client)
             else:
                 raise ValueError(f"Unknown prompt: {name}")
@@ -82,6 +54,8 @@ def pinecone_semantic_search(
     """
     Search Pinecone index and construct an answer based on relevant pinecone documents
     """
+
+    logger.info(f"Searching Pinecone index for query: {arguments['query']}")
     results = semantic_search(arguments, pinecone_client)
 
     # loop through each result and add it to messages
@@ -95,85 +69,6 @@ def pinecone_semantic_search(
         )
 
     return types.GetPromptResult(messages=messages)
-
-
-def pinecone_store(
-    arguments: dict | None, pinecone_client: PineconeClient
-) -> list[types.TextContent]:
-    """
-    Store content as document in Pinecone
-    """
-    content = arguments.get("content")
-    namespace = arguments.get("namespace")
-
-    metadata = {
-        "date": datetime.now().isoformat(),
-    }
-
-    if not content:
-        raise ValueError("Content required")
-
-    return types.GetPromptResult(
-        messages=[
-            types.PromptMessage(
-                role="user",
-                content=types.TextContent(
-                    type="text",
-                    text=f"The namespace is {namespace if namespace else 'not specified'}. \n"
-                    "If the namespace is not specified, use pinecone-stats to find an appropriate namespace or use the default namespace.",
-                ),
-            ),
-            types.PromptMessage(
-                role="user",
-                content=types.TextContent(
-                    type="text",
-                    text=f"Based on the content, generate metadata that can be relevant to the content and used for filtering. \n"
-                    "The metadata should be a dictionary with keys and values that are relevant to the content. \n"
-                    f"Append the metdata to {metadata} \n",
-                ),
-            ),
-            types.PromptMessage(
-                role="user",
-                content=types.TextContent(
-                    type="text",
-                    text=f"Run the process-document tool with the content: {content} \n"
-                    "Do not truncate or use placeholders to describe an intent to add a document. Always add the raw content. \n"
-                    "Include generated metadata in the document. \n"
-                    f"Store in the {namespace} if specified",
-                ),
-            ),
-        ]
-    )
-
-
-def pinecone_query(
-    arguments: dict | None, pinecone_client: PineconeClient
-) -> list[types.TextContent]:
-    """
-    Search Pinecone index and construct an answer based on relevant pinecone documents
-    """
-    query = arguments.get("query")
-    if not query:
-        raise ValueError("Query required")
-
-    return types.GetPromptResult(
-        messages=[
-            types.PromptMessage(
-                role="user",
-                content=types.TextContent(
-                    type="text",
-                    text="First use pinecone-stats to get a list of namespaces that might contain relevant documents. Ignore if a namespace is specified in the query",
-                ),
-            ),
-            types.PromptMessage(
-                role="user",
-                content=types.TextContent(
-                    type="text",
-                    text=f"Do a semantic search for the query: {query} with the chosen namespace",
-                ),
-            ),
-        ]
-    )
 
 
 __all__ = [
