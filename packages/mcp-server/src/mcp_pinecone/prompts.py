@@ -4,6 +4,7 @@ import mcp.types as types
 from mcp.server import Server
 from .pinecone import PineconeClient
 from datetime import datetime
+from .tools import semantic_search
 
 
 logger = logging.getLogger("pinecone-mcp")
@@ -12,6 +13,11 @@ logger = logging.getLogger("pinecone-mcp")
 class PromptName(str, Enum):
     PINECONE_QUERY = "pinecone-query"
     PINECONE_STORE = "pinecone-store"
+    PINECONE_SEMANTIC_SEARCH = "pinecone-semantic-search"
+    PINECONE_READ_DOCUMENT = "pinecone-read-document"
+    PINECONE_PROCESS_DOCUMENT = "pinecone-process-document"
+    PINECONE_LIST_DOCUMENTS = "pinecone-list-documents"
+    PINECONE_STATS = "pinecone-stats"
 
 
 ServerPrompts = [
@@ -42,6 +48,27 @@ ServerPrompts = [
             ),
         ],
     ),
+    types.Prompt(
+        name=PromptName.PINECONE_SEMANTIC_SEARCH,
+        description="Search Pinecone index and construct an answer based on relevant pinecone documents",
+        arguments=[
+            types.PromptArgument(
+                name="query",
+                description="The query to search for",
+                required=True,
+            ),
+            types.PromptArgument(
+                name="top_k",
+                description="The number of documents to return",
+                required=False,
+            ),
+            types.PromptArgument(
+                name="namespace",
+                description="The namespace to search in",
+                required=False,
+            ),
+        ],
+    ),
 ]
 
 
@@ -59,12 +86,35 @@ def register_prompts(server: Server, pinecone_client: PineconeClient):
                 return pinecone_query(arguments, pinecone_client)
             elif name == PromptName.PINECONE_STORE:
                 return pinecone_store(arguments, pinecone_client)
+            elif name == PromptName.PINECONE_SEMANTIC_SEARCH:
+                return pinecone_semantic_search(arguments, pinecone_client)
             else:
                 raise ValueError(f"Unknown prompt: {name}")
 
         except Exception as e:
             logger.error(f"Error calling prompt {name}: {e}")
             raise
+
+
+def pinecone_semantic_search(
+    arguments: dict | None, pinecone_client: PineconeClient
+) -> list[types.TextContent]:
+    """
+    Search Pinecone index and construct an answer based on relevant pinecone documents
+    """
+    results = semantic_search(arguments, pinecone_client)
+
+    # loop through each result and add it to messages
+    messages = []
+    for result in results:
+        messages.append(
+            types.PromptMessage(
+                role="user",
+                content=types.TextContent(type="text", text=result.text),
+            )
+        )
+
+    return types.GetPromptResult(messages=messages)
 
 
 def pinecone_store(
