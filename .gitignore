@@ -18,3 +18,7 @@ database/*
 
 # Environment variables
 .env
+
+# Zed extension
+target/
+extension.wasm

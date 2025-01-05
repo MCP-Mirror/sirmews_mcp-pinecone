@@ -1,0 +1,10 @@
+id = "pinecone-context-server"
+name = "Pinecone Context Server"
+version = "0.1.8" # Should I match the version of mcp-pinecone?
+description = "Connect to Pinecone vector database via MCP"
+authors = ["Navishkar Rao <nav@perfectlycromulent.dev>"]
+repository = "https://github.com/sirmews/mcp-pinecone"
+schema_version = 1
+
+[context_servers.pinecone_context_server]
+name = "Pinecone Context Server"
